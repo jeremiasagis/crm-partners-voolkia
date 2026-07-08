@@ -1,36 +1,53 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Voolkia CRM — Programa de Partners Estratégicos
 
-## Getting Started
+CRM interno de Voolkia S.A. para gestionar partners (agencias/consultoras que refieren oportunidades) y el pipeline comercial asociado.
 
-First, run the development server:
+## Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Next.js 15 (App Router) + TypeScript
+- Tailwind CSS v4 + shadcn/ui (tema custom Voolkia)
+- Supabase (Postgres + Auth + Storage + RLS)
+- TanStack Query · react-hook-form + zod · date-fns (es-AR)
+- Recharts · dnd-kit · sonner · lucide-react
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Setup local
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Cloná el repo e instalá dependencias:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+   ```bash
+   npm install
+   ```
 
-## Learn More
+2. Copiá `.env.example` a `.env.local` y completá las credenciales de Supabase
+   (Dashboard → Settings → API):
 
-To learn more about Next.js, take a look at the following resources:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `SUPABASE_SERVICE_ROLE_KEY` (solo server-side)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+3. Corré la migración: pegá `supabase/migrations/001_init.sql` en el SQL Editor
+   de Supabase y ejecutalo.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+4. (Opcional, solo desarrollo) Cargá datos de ejemplo con `supabase/seed.sql`.
+   Para limpiarlos: `select public.clean_seed_data();`
 
-## Deploy on Vercel
+5. Creá el primer usuario admin: Supabase Dashboard → Authentication → Users →
+   Add user (con email + password, confirmado). El profile se crea solo.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+6. Levantá el dev server:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+   ```bash
+   npm run dev
+   ```
+
+## Deploy
+
+Vercel — configurar las tres env vars en el proyecto. `main` deploya a producción.
+
+## Estructura
+
+- `app/(auth)/login` — login (Supabase Auth)
+- `app/(app)/…` — secciones protegidas (dashboard, partners, contactos, oportunidades, actividades, configuración)
+- `lib/supabase/` — clientes browser/server/middleware + admin
+- `supabase/migrations/` — SQL del schema (correr a mano en Supabase)
+- `components/ui/` — shadcn/ui · `components/layout/` — sidebar/header
