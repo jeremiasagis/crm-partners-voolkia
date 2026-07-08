@@ -9,6 +9,7 @@ const TABLE_KEYS: Record<string, string[][]> = {
   partners: [["partners"]],
   contactos: [["contactos"]],
   actividades: [["actividades"]],
+  lead_submissions: [["lead-submissions"]],
 };
 
 /**

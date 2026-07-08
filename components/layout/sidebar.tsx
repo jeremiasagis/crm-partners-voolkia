@@ -9,6 +9,7 @@ import {
   CalendarClock,
   ChevronsLeft,
   ChevronsRight,
+  Inbox,
   LayoutDashboard,
   LogOut,
   Settings,
@@ -17,6 +18,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import { usePendingLeadsCount } from "@/hooks/use-leads";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Tooltip,
@@ -30,6 +32,7 @@ export const NAV_ITEMS = [
   { href: "/partners", label: "Partners", icon: Building2 },
   { href: "/contactos", label: "Contactos", icon: Users },
   { href: "/oportunidades", label: "Oportunidades", icon: Target },
+  { href: "/leads", label: "Leads referidos", icon: Inbox },
   { href: "/actividades", label: "Actividades", icon: CalendarClock },
 ];
 
@@ -52,6 +55,7 @@ export function Sidebar({ userName, userEmail }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
+  const pendingLeads = usePendingLeadsCount();
 
   async function handleLogout() {
     const supabase = createClient();
@@ -87,6 +91,16 @@ export function Sidebar({ userName, userEmail }: SidebarProps) {
       >
         <Icon className="size-5 shrink-0" />
         {!collapsed && <span className="truncate">{label}</span>}
+        {href === "/leads" && pendingLeads > 0 && (
+          <span
+            className={cn(
+              "flex size-5 shrink-0 items-center justify-center rounded-full bg-[#FF6B1A] text-[10px] font-bold text-white",
+              collapsed ? "absolute -right-1 -top-1" : "ml-auto"
+            )}
+          >
+            {pendingLeads}
+          </span>
+        )}
       </Link>
     );
 

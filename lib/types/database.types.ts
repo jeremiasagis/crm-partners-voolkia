@@ -48,6 +48,8 @@ export type Etapa =
   | "negociacion"
   | "ganada"
   | "perdida";
+export type EstadoLead = "pendiente" | "aprobada" | "rechazada";
+export type UserRole = "admin" | "partner";
 export type MotivoPerdida =
   | "precio"
   | "timing"
@@ -75,6 +77,7 @@ export type Database = {
           role: string | null;
           country_code: string | null;
           phone: string | null;
+          partner_id: string | null;
           created_at: string | null;
         };
         Insert: {
@@ -84,6 +87,7 @@ export type Database = {
           role?: string | null;
           country_code?: string | null;
           phone?: string | null;
+          partner_id?: string | null;
           created_at?: string | null;
         };
         Update: {
@@ -93,6 +97,64 @@ export type Database = {
           role?: string | null;
           country_code?: string | null;
           phone?: string | null;
+          partner_id?: string | null;
+          created_at?: string | null;
+        };
+        Relationships: [];
+      };
+      lead_submissions: {
+        Row: {
+          id: string;
+          partner_id: string;
+          submitted_by: string | null;
+          cliente_final_name: string;
+          cliente_final_country: string | null;
+          contacto_nombre: string | null;
+          contacto_email: string | null;
+          contacto_phone: string | null;
+          descripcion: string | null;
+          monto_estimado_usd: number | null;
+          estado: EstadoLead;
+          motivo_rechazo: string | null;
+          oportunidad_id: string | null;
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          partner_id: string;
+          submitted_by?: string | null;
+          cliente_final_name: string;
+          cliente_final_country?: string | null;
+          contacto_nombre?: string | null;
+          contacto_email?: string | null;
+          contacto_phone?: string | null;
+          descripcion?: string | null;
+          monto_estimado_usd?: number | null;
+          estado?: EstadoLead;
+          motivo_rechazo?: string | null;
+          oportunidad_id?: string | null;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          partner_id?: string;
+          submitted_by?: string | null;
+          cliente_final_name?: string;
+          cliente_final_country?: string | null;
+          contacto_nombre?: string | null;
+          contacto_email?: string | null;
+          contacto_phone?: string | null;
+          descripcion?: string | null;
+          monto_estimado_usd?: number | null;
+          estado?: EstadoLead;
+          motivo_rechazo?: string | null;
+          oportunidad_id?: string | null;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
           created_at?: string | null;
         };
         Relationships: [];
@@ -404,7 +466,49 @@ export type Database = {
         Relationships: [];
       };
     };
-    Views: Record<string, never>;
+    Views: {
+      portal_partner: {
+        Row: {
+          id: string;
+          legal_name: string;
+          commercial_name: string | null;
+          country_code: string;
+          tier: PartnerTier | null;
+          status: PartnerStatus | null;
+          signed_at: string | null;
+        };
+        Relationships: [];
+      };
+      portal_oportunidades: {
+        Row: {
+          id: string;
+          partner_id: string;
+          cliente_final_name: string;
+          cliente_final_country: string | null;
+          componente: Componente;
+          monto_estimado_usd: number;
+          comision_estimada_usd: number | null;
+          probabilidad: number | null;
+          etapa: Etapa | null;
+          fecha_estimada_cierre: string | null;
+          fecha_real_cierre: string | null;
+          motivo_perdida: MotivoPerdida | null;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Relationships: [];
+      };
+      portal_etapa_historial: {
+        Row: {
+          id: string;
+          oportunidad_id: string;
+          etapa_anterior: string | null;
+          etapa_nueva: string;
+          changed_at: string;
+        };
+        Relationships: [];
+      };
+    };
     Functions: {
       clean_seed_data: {
         Args: Record<string, never>;

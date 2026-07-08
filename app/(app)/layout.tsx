@@ -22,9 +22,14 @@ export default async function AppLayout({
   // degradamos al email del usuario sin romper el layout.
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name")
+    .select("full_name, role")
     .eq("id", user.id)
     .maybeSingle();
+
+  // Los usuarios partner van a su portal, no al CRM interno
+  if (profile?.role === "partner") {
+    redirect("/portal");
+  }
 
   return (
     <div className="flex min-h-svh">

@@ -7,9 +7,11 @@ const createUserSchema = z.object({
   full_name: z.string().min(2, "Ingresá el nombre completo"),
   email: z.string().email("Email inválido"),
   password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres"),
+  role: z.enum(["admin", "partner"]).default("admin"),
+  partner_id: z.string().uuid().nullable().optional(),
 });
 
-export type CreateUserInput = z.infer<typeof createUserSchema>;
+export type CreateUserInput = z.input<typeof createUserSchema>;
 
 /** Crea un usuario vía Supabase Admin API. Solo admins. */
 export async function createUserAction(
@@ -34,9 +36,12 @@ export async function createUserAction(
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
   }
+  if (parsed.data.role === "partner" && !parsed.data.partner_id) {
+    return { error: "Elegí a qué partner pertenece el usuario" };
+  }
 
   const admin = createAdminClient();
-  const { error } = await admin.auth.admin.createUser({
+  const { data: created, error } = await admin.auth.admin.createUser({
     email: parsed.data.email,
     password: parsed.data.password,
     email_confirm: true,
@@ -50,5 +55,21 @@ export async function createUserAction(
         : error.message,
     };
   }
+
+  // El trigger crea el profile con rol admin por defecto:
+  // lo ajustamos según lo elegido.
+  const { error: profileError } = await admin
+    .from("profiles")
+    .update({
+      role: parsed.data.role,
+      partner_id: parsed.data.role === "partner" ? parsed.data.partner_id : null,
+      full_name: parsed.data.full_name,
+    })
+    .eq("id", created.user.id);
+
+  if (profileError) {
+    return { error: `Usuario creado pero falló el rol: ${profileError.message}` };
+  }
+
   return { success: true };
 }

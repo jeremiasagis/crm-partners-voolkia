@@ -6,6 +6,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Loader2, Plus, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { useCurrentUser, useProfiles } from "@/hooks/use-profiles";
+import { usePartners } from "@/hooks/use-partners";
+import { partnerDisplayName } from "@/lib/utils/labels";
 import { createUserAction } from "@/app/(app)/configuracion/actions";
 import { createClient } from "@/lib/supabase/client";
 import { COUNTRIES, INDUSTRIES } from "@/lib/utils/countries";
@@ -58,10 +60,17 @@ function initials(name: string) {
 
 /* ── Tab Usuarios ─────────────────────────────── */
 
-type NewUserValues = { full_name: string; email: string; password: string };
+type NewUserValues = {
+  full_name: string;
+  email: string;
+  password: string;
+  role: "admin" | "partner";
+  partner_id: string;
+};
 
 function UsuariosTab() {
   const { data: profiles = [], isLoading } = useProfiles();
+  const { data: partners = [] } = usePartners();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
@@ -70,20 +79,42 @@ function UsuariosTab() {
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<NewUserValues>({
-    defaultValues: { full_name: "", email: "", password: "" },
+    defaultValues: {
+      full_name: "",
+      email: "",
+      password: "",
+      role: "admin",
+      partner_id: "",
+    },
   });
 
+  const role = watch("role");
+  const partnerId = watch("partner_id");
+
   async function onSubmit(values: NewUserValues) {
+    if (values.role === "partner" && !values.partner_id) {
+      toast.error("Elegí a qué partner pertenece el usuario");
+      return;
+    }
     setPending(true);
-    const result = await createUserAction(values);
+    const result = await createUserAction({
+      ...values,
+      partner_id: values.role === "partner" ? values.partner_id : null,
+    });
     setPending(false);
     if (result.error) {
       toast.error(result.error);
       return;
     }
-    toast.success(`Usuario ${values.email} creado`);
+    toast.success(
+      values.role === "partner"
+        ? `Usuario del portal creado: ${values.email}`
+        : `Usuario ${values.email} creado`
+    );
     queryClient.invalidateQueries({ queryKey: ["profiles"] });
     reset();
     setOpen(false);
@@ -141,6 +172,45 @@ function UsuariosTab() {
                   placeholder="Mínimo 8 caracteres"
                 />
               </Field>
+              <Field label="Tipo de usuario" required>
+                <Select
+                  value={role}
+                  onValueChange={(v) =>
+                    setValue("role", v as "admin" | "partner")
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="admin">
+                      Interno (Voolkia — acceso total)
+                    </SelectItem>
+                    <SelectItem value="partner">
+                      Partner (solo su portal)
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
+              {role === "partner" && (
+                <Field label="Partner al que pertenece" required>
+                  <Select
+                    value={partnerId || undefined}
+                    onValueChange={(v) => setValue("partner_id", v)}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Elegí el partner" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {partners.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {partnerDisplayName(p)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+              )}
               <Button type="submit" disabled={pending} className="w-full">
                 {pending && <Loader2 className="size-4 animate-spin" />}
                 Crear usuario
@@ -185,10 +255,16 @@ function UsuariosTab() {
                   </TableCell>
                   <TableCell className="text-sm">{p.email}</TableCell>
                   <TableCell>
-                    <Badge className="bg-orange-soft text-orange-deep">
-                      <ShieldCheck className="size-3" />
-                      {p.role ?? "admin"}
-                    </Badge>
+                    {p.role === "partner" ? (
+                      <Badge className="bg-blue-100 text-blue-800">
+                        Portal Partner
+                      </Badge>
+                    ) : (
+                      <Badge className="bg-orange-soft text-orange-deep">
+                        <ShieldCheck className="size-3" />
+                        Interno
+                      </Badge>
+                    )}
                   </TableCell>
                   <TableCell className="text-sm">
                     {p.country_code ?? "—"}

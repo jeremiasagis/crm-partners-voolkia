@@ -20,6 +20,7 @@ const SECTION_TITLES: Record<string, string> = {
   "/partners": "Partners",
   "/contactos": "Contactos",
   "/oportunidades": "Oportunidades",
+  "/leads": "Leads referidos",
   "/actividades": "Actividades",
   "/configuracion": "Configuración",
 };
