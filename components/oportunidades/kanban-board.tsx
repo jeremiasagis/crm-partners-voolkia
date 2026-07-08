@@ -31,6 +31,8 @@ import { formatDate, formatMoney } from "@/lib/utils/format";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { TableSkeleton } from "@/components/shared/table-skeleton";
+import { Confetti } from "@/components/shared/confetti";
+import { LoseDialog, WinDialog } from "./etapa-dialogs";
 import { cn } from "@/lib/utils";
 
 const COLUMN_ACCENT: Record<Etapa, string> = {
@@ -76,10 +78,11 @@ function KanbanCard({
           {opp.cliente_final_name}
         </p>
         <Link
-          href={`/oportunidades/${opp.id}/edit`}
+          href={`/oportunidades/${opp.id}`}
           onClick={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
           className="rounded p-1 text-muted-warm opacity-0 transition-opacity hover:text-orange-deep group-hover:opacity-100"
+          title="Ver detalle"
         >
           <Pencil className="size-3.5" />
         </Link>
@@ -223,6 +226,9 @@ export function KanbanBoard() {
   const moveOpp = useMoveOportunidad();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [perdidaCollapsed, setPerdidaCollapsed] = useState(true);
+  const [winTarget, setWinTarget] = useState<OportunidadWithRels | null>(null);
+  const [loseTarget, setLoseTarget] = useState<OportunidadWithRels | null>(null);
+  const [celebrating, setCelebrating] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
@@ -261,6 +267,16 @@ export function KanbanBoard() {
     if (!target || !ETAPAS_ORDEN.includes(target)) return;
     const opp = (oportunidades ?? []).find((o) => o.id === oppId);
     if (!opp || opp.etapa === target) return;
+
+    // Ganada y perdida piden datos extra antes de confirmar el movimiento
+    if (target === "ganada") {
+      setWinTarget(opp);
+      return;
+    }
+    if (target === "perdida") {
+      setLoseTarget(opp);
+      return;
+    }
     moveOpp.mutate({ id: oppId, etapa: target });
   }
 
@@ -315,6 +331,43 @@ export function KanbanBoard() {
           {active && <KanbanCard opp={active} overlay />}
         </DragOverlay>
       </DndContext>
+
+      <WinDialog
+        opp={winTarget}
+        onCancel={() => setWinTarget(null)}
+        onConfirm={({ fecha_real_cierre, comision }) => {
+          if (winTarget) {
+            moveOpp.mutate({
+              id: winTarget.id,
+              etapa: "ganada",
+              extra: {
+                fecha_real_cierre,
+                comision_estimada_usd: comision,
+                probabilidad: 100,
+              },
+            });
+            setCelebrating(true);
+          }
+          setWinTarget(null);
+        }}
+      />
+
+      <LoseDialog
+        opp={loseTarget}
+        onCancel={() => setLoseTarget(null)}
+        onConfirm={(motivo) => {
+          if (loseTarget) {
+            moveOpp.mutate({
+              id: loseTarget.id,
+              etapa: "perdida",
+              extra: { motivo_perdida: motivo, probabilidad: 0 },
+            });
+          }
+          setLoseTarget(null);
+        }}
+      />
+
+      {celebrating && <Confetti onDone={() => setCelebrating(false)} />}
     </div>
   );
 }

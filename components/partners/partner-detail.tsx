@@ -7,6 +7,7 @@ import {
   Building2,
   CalendarPlus,
   ExternalLink,
+  FileText,
   Globe,
   Mail,
   Pencil,
@@ -120,7 +121,13 @@ export function PartnerDetail({ id }: { id: string }) {
               ` · Funnel: ${FUNNEL_STAGE_LABELS[partner.funnel_stage]}`}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Button asChild variant="outline">
+            <Link href={`/partners/${partner.id}/brief`} target="_blank">
+              <FileText className="size-4" />
+              Brief PDF
+            </Link>
+          </Button>
           <Button asChild variant="outline">
             <Link href={`/actividades/new?partner=${partner.id}`}>
               <CalendarPlus className="size-4" />
@@ -339,7 +346,7 @@ export function PartnerDetail({ id }: { id: string }) {
                     <TableRow
                       key={o.id}
                       className="cursor-pointer"
-                      onClick={() => router.push(`/oportunidades/${o.id}/edit`)}
+                      onClick={() => router.push(`/oportunidades/${o.id}`)}
                     >
                       <TableCell className="font-medium">
                         {o.cliente_final_name}

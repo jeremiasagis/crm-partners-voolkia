@@ -2,6 +2,7 @@ import type {
   Componente,
   Etapa,
   FunnelStage,
+  MotivoPerdida,
   PartnerSize,
   PartnerSource,
   PartnerStatus,
@@ -118,6 +119,23 @@ export const COMPONENTE_COLORS: Record<Componente, string> = {
   T: "bg-orange-100 text-orange-800 border-orange-200",
   P: "bg-emerald-100 text-emerald-800 border-emerald-200",
 };
+
+export const MOTIVO_PERDIDA_LABELS: Record<MotivoPerdida, string> = {
+  precio: "Precio",
+  timing: "Timing",
+  competidor: "Competidor",
+  sin_presupuesto: "Sin presupuesto",
+  otro: "Otro",
+};
+
+/** Etapas del funnel de conversión (sin perdida) en orden */
+export const FUNNEL_ETAPAS: Etapa[] = [
+  "lead",
+  "calificada",
+  "propuesta",
+  "negociacion",
+  "ganada",
+];
 
 export const TIPO_ACTIVIDAD_LABELS: Record<TipoActividad, string> = {
   llamada: "Llamada",

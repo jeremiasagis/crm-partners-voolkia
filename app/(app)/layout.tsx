@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
+import { RealtimeSync } from "@/components/layout/realtime-sync";
 
 export default async function AppLayout({
   children,
@@ -33,8 +34,9 @@ export default async function AppLayout({
       />
       <div className="flex min-w-0 flex-1 flex-col">
         <Header />
-        <main className="flex-1 px-8 py-6">{children}</main>
+        <main className="flex-1 px-4 py-6 md:px-8">{children}</main>
       </div>
+      <RealtimeSync />
     </div>
   );
 }

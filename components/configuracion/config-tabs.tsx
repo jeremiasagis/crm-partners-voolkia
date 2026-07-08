@@ -43,6 +43,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Field } from "@/components/shared/field";
+import { ObjetivosTab } from "./objetivos-tab";
+import { ImportarTab } from "./importar-tab";
 
 function initials(name: string) {
   return name
@@ -352,6 +354,8 @@ export function ConfigTabs() {
     <Tabs defaultValue={isAdmin ? "usuarios" : "perfil"}>
       <TabsList>
         {isAdmin && <TabsTrigger value="usuarios">Usuarios</TabsTrigger>}
+        <TabsTrigger value="objetivos">Objetivos</TabsTrigger>
+        <TabsTrigger value="importar">Importar</TabsTrigger>
         <TabsTrigger value="perfil">Mi perfil</TabsTrigger>
         <TabsTrigger value="datos">Datos maestros</TabsTrigger>
       </TabsList>
@@ -360,6 +364,12 @@ export function ConfigTabs() {
           <UsuariosTab />
         </TabsContent>
       )}
+      <TabsContent value="objetivos" className="mt-4">
+        <ObjetivosTab />
+      </TabsContent>
+      <TabsContent value="importar" className="mt-4">
+        <ImportarTab />
+      </TabsContent>
       <TabsContent value="perfil" className="mt-4">
         <PerfilTab />
       </TabsContent>

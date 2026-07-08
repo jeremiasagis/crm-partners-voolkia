@@ -13,6 +13,7 @@ import {
 import { formatDate } from "@/lib/utils/format";
 import { partnerDisplayName } from "@/lib/utils/labels";
 import { GlobalSearch } from "./global-search";
+import { MobileNav } from "./mobile-nav";
 
 const SECTION_TITLES: Record<string, string> = {
   "/dashboard": "Dashboard",
@@ -46,7 +47,8 @@ export function Header() {
   const { data: pendientes = [] } = useMisPendientes();
 
   return (
-    <header className="sticky top-0 z-20 flex h-16 items-center gap-4 border-b border-line bg-white/80 px-8 backdrop-blur-md">
+    <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-line bg-white/80 px-4 backdrop-blur-md md:gap-4 md:px-8">
+      <MobileNav />
       <h1 className="text-lg font-bold tracking-tight text-ink">{title}</h1>
 
       <div className="flex-1" />

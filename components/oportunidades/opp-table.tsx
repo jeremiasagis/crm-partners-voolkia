@@ -247,7 +247,7 @@ export function OppTable() {
                       "cursor-pointer",
                       overdue && "bg-red-50/70 hover:bg-red-50"
                     )}
-                    onClick={() => router.push(`/oportunidades/${o.id}/edit`)}
+                    onClick={() => router.push(`/oportunidades/${o.id}`)}
                   >
                     <TableCell className="font-semibold text-ink">
                       {o.cliente_final_name}

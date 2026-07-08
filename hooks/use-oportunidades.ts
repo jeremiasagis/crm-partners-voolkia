@@ -109,14 +109,17 @@ export function useMoveOportunidad() {
     mutationFn: async ({
       id,
       etapa,
+      extra,
     }: {
       id: string;
       etapa: NonNullable<Oportunidad["etapa"]>;
+      /** Campos extra (fecha real de cierre, comisión, motivo de pérdida…) */
+      extra?: Partial<OportunidadInsert>;
     }): Promise<void> => {
       const supabase = createClient();
       const { error } = await supabase
         .from("oportunidades")
-        .update({ etapa })
+        .update({ etapa, ...extra })
         .eq("id", id);
       if (error) throw error;
     },

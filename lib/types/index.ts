@@ -6,6 +6,9 @@ export type Contacto = Database["public"]["Tables"]["contactos"]["Row"];
 export type Oportunidad = Database["public"]["Tables"]["oportunidades"]["Row"];
 export type Actividad = Database["public"]["Tables"]["actividades"]["Row"];
 export type Adjunto = Database["public"]["Tables"]["adjuntos"]["Row"];
+export type EtapaHistorial =
+  Database["public"]["Tables"]["oportunidad_etapa_historial"]["Row"];
+export type Objetivo = Database["public"]["Tables"]["objetivos"]["Row"];
 
 export type PartnerInsert = Database["public"]["Tables"]["partners"]["Insert"];
 export type ContactoInsert = Database["public"]["Tables"]["contactos"]["Insert"];

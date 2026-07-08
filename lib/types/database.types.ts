@@ -48,6 +48,13 @@ export type Etapa =
   | "negociacion"
   | "ganada"
   | "perdida";
+export type MotivoPerdida =
+  | "precio"
+  | "timing"
+  | "competidor"
+  | "sin_presupuesto"
+  | "otro";
+export type TipoObjetivo = "comisiones_usd" | "deals_ganados";
 export type TipoActividad =
   | "llamada"
   | "reunion"
@@ -210,6 +217,7 @@ export type Database = {
           fecha_real_cierre: string | null;
           proxima_accion: string | null;
           proxima_accion_fecha: string | null;
+          motivo_perdida: MotivoPerdida | null;
           notes: string | null;
           owner_id: string | null;
           created_at: string | null;
@@ -229,6 +237,7 @@ export type Database = {
           fecha_real_cierre?: string | null;
           proxima_accion?: string | null;
           proxima_accion_fecha?: string | null;
+          motivo_perdida?: MotivoPerdida | null;
           notes?: string | null;
           owner_id?: string | null;
           created_at?: string | null;
@@ -248,8 +257,66 @@ export type Database = {
           fecha_real_cierre?: string | null;
           proxima_accion?: string | null;
           proxima_accion_fecha?: string | null;
+          motivo_perdida?: MotivoPerdida | null;
           notes?: string | null;
           owner_id?: string | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [];
+      };
+      oportunidad_etapa_historial: {
+        Row: {
+          id: string;
+          oportunidad_id: string;
+          etapa_anterior: string | null;
+          etapa_nueva: string;
+          changed_by: string | null;
+          changed_at: string;
+        };
+        Insert: {
+          id?: string;
+          oportunidad_id: string;
+          etapa_anterior?: string | null;
+          etapa_nueva: string;
+          changed_by?: string | null;
+          changed_at?: string;
+        };
+        Update: {
+          id?: string;
+          oportunidad_id?: string;
+          etapa_anterior?: string | null;
+          etapa_nueva?: string;
+          changed_by?: string | null;
+          changed_at?: string;
+        };
+        Relationships: [];
+      };
+      objetivos: {
+        Row: {
+          id: string;
+          anio: number;
+          trimestre: number;
+          tipo: TipoObjetivo;
+          valor: number;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          anio: number;
+          trimestre: number;
+          tipo: TipoObjetivo;
+          valor?: number;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          anio?: number;
+          trimestre?: number;
+          tipo?: TipoObjetivo;
+          valor?: number;
           created_at?: string | null;
           updated_at?: string | null;
         };

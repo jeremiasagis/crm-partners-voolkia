@@ -9,10 +9,16 @@ import {
   Trophy,
 } from "lucide-react";
 import {
+  addQuarters,
   differenceInCalendarDays,
+  differenceInHours,
+  endOfQuarter,
   format,
+  getQuarter,
+  getYear,
   parseISO,
   startOfMonth,
+  startOfQuarter,
   subDays,
   subMonths,
 } from "date-fns";
@@ -21,6 +27,7 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  LabelList,
   Line,
   LineChart,
   ResponsiveContainer,
@@ -31,10 +38,14 @@ import {
 import { usePartners } from "@/hooks/use-partners";
 import { useOportunidades } from "@/hooks/use-oportunidades";
 import { usePendientesHoy, useProximasActividades } from "@/hooks/use-dashboard";
-import type { PartnerWithStats } from "@/lib/types";
+import { useEtapaHistorial } from "@/hooks/use-historial";
+import { useObjetivos } from "@/hooks/use-objetivos";
+import type { Etapa, PartnerWithStats } from "@/lib/types";
 import {
   ETAPAS_PIPELINE,
   ETAPA_LABELS,
+  FUNNEL_ETAPAS,
+  MOTIVO_PERDIDA_LABELS,
   TIPO_ACTIVIDAD_LABELS,
   partnerDisplayName,
 } from "@/lib/utils/labels";
@@ -139,6 +150,173 @@ export function Dashboard() {
   const { data: oportunidades, isLoading: loadingOpps } = useOportunidades();
   const { data: pendientesHoy = [] } = usePendientesHoy();
   const { data: proximas = [] } = useProximasActividades(7);
+  const { data: historial = [] } = useEtapaHistorial();
+  const { data: objetivos = [] } = useObjetivos();
+
+  // ── Funnel, motivos y tiempos por etapa ──
+  const metricas = useMemo(() => {
+    const opps = oportunidades ?? [];
+
+    // Etapas alcanzadas por oportunidad (historial + etapa actual)
+    const reachedByOpp = new Map<string, Set<string>>();
+    for (const o of opps) {
+      reachedByOpp.set(o.id, new Set(o.etapa ? [o.etapa] : []));
+    }
+    for (const h of historial) {
+      reachedByOpp.get(h.oportunidad_id)?.add(h.etapa_nueva);
+    }
+
+    const funnel = FUNNEL_ETAPAS.map((etapa, idx) => {
+      const count = [...reachedByOpp.values()].filter((reached) => {
+        const maxIdx = Math.max(
+          ...[...reached].map((e) => FUNNEL_ETAPAS.indexOf(e as Etapa)),
+          -1
+        );
+        return maxIdx >= idx;
+      }).length;
+      return { etapa: ETAPA_LABELS[etapa], count };
+    });
+    const base = funnel[0]?.count ?? 0;
+    const funnelData = funnel.map((f) => ({
+      ...f,
+      pct: base > 0 ? Math.round((f.count / base) * 100) : 0,
+    }));
+
+    const ganadas = opps.filter((o) => o.etapa === "ganada").length;
+    const perdidas = opps.filter((o) => o.etapa === "perdida").length;
+    const winRate =
+      ganadas + perdidas > 0
+        ? Math.round((ganadas / (ganadas + perdidas)) * 100)
+        : null;
+
+    // Motivos de pérdida
+    const motivosMap = new Map<string, number>();
+    for (const o of opps) {
+      if (o.etapa === "perdida" && o.motivo_perdida) {
+        motivosMap.set(
+          o.motivo_perdida,
+          (motivosMap.get(o.motivo_perdida) ?? 0) + 1
+        );
+      }
+    }
+    const motivos = [...motivosMap.entries()]
+      .map(([motivo, count]) => ({
+        motivo:
+          MOTIVO_PERDIDA_LABELS[
+            motivo as keyof typeof MOTIVO_PERDIDA_LABELS
+          ] ?? motivo,
+        count,
+      }))
+      .sort((a, b) => b.count - a.count);
+
+    // Tiempo promedio en cada etapa (horas entre cambios consecutivos)
+    const porOpp = new Map<string, typeof historial>();
+    for (const h of historial) {
+      const list = porOpp.get(h.oportunidad_id) ?? [];
+      list.push(h);
+      porOpp.set(h.oportunidad_id, list);
+    }
+    const duraciones = new Map<string, number[]>();
+    for (const cambios of porOpp.values()) {
+      const sorted = [...cambios].sort((a, b) =>
+        a.changed_at.localeCompare(b.changed_at)
+      );
+      for (let i = 0; i < sorted.length - 1; i++) {
+        const etapa = sorted[i].etapa_nueva;
+        const horas = differenceInHours(
+          parseISO(sorted[i + 1].changed_at),
+          parseISO(sorted[i].changed_at)
+        );
+        if (horas > 0) {
+          const list = duraciones.get(etapa) ?? [];
+          list.push(horas);
+          duraciones.set(etapa, list);
+        }
+      }
+    }
+    const tiempos = ETAPAS_PIPELINE.map((etapa) => {
+      const horas = duraciones.get(etapa) ?? [];
+      const avg =
+        horas.length > 0
+          ? horas.reduce((a, b) => a + b, 0) / horas.length
+          : null;
+      return {
+        etapa: ETAPA_LABELS[etapa],
+        dias: avg != null ? Math.round((avg / 24) * 10) / 10 : null,
+        muestras: horas.length,
+      };
+    });
+
+    return { funnelData, winRate, motivos, tiempos };
+  }, [oportunidades, historial]);
+
+  // ── Objetivos del trimestre y forecast ──
+  const planning = useMemo(() => {
+    const opps = oportunidades ?? [];
+    const now = new Date();
+    const anio = getYear(now);
+    const q = getQuarter(now);
+
+    const metaComisiones = objetivos.find(
+      (o) => o.anio === anio && o.trimestre === q && o.tipo === "comisiones_usd"
+    )?.valor;
+    const metaDeals = objetivos.find(
+      (o) => o.anio === anio && o.trimestre === q && o.tipo === "deals_ganados"
+    )?.valor;
+
+    const inicioQ = startOfQuarter(now);
+    const finQ = endOfQuarter(now);
+    const ganadasQ = opps.filter((o) => {
+      if (o.etapa !== "ganada") return false;
+      const f = o.fecha_real_cierre ?? o.updated_at;
+      if (!f) return false;
+      const d = parseISO(f);
+      return d >= inicioQ && d <= finQ;
+    });
+    const comisionesLogradas = ganadasQ.reduce(
+      (acc, o) => acc + Number(o.comision_estimada_usd ?? 0),
+      0
+    );
+
+    const abiertas = opps.filter(
+      (o) => o.etapa && ETAPAS_PIPELINE.includes(o.etapa)
+    );
+    const forecast = [0, 1, 2, 3].map((offset) => {
+      const qDate = addQuarters(now, offset);
+      const inicio = startOfQuarter(qDate);
+      const fin = endOfQuarter(qDate);
+      const enQ = abiertas.filter((o) => {
+        if (!o.fecha_estimada_cierre) return false;
+        const d = parseISO(o.fecha_estimada_cierre);
+        return d >= inicio && d <= fin;
+      });
+      return {
+        label: `Q${getQuarter(qDate)} ${getYear(qDate)}`,
+        deals: enQ.length,
+        ponderado: enQ.reduce(
+          (acc, o) =>
+            acc + Number(o.monto_estimado_usd) * ((o.probabilidad ?? 0) / 100),
+          0
+        ),
+        optimista: enQ.reduce(
+          (acc, o) => acc + Number(o.monto_estimado_usd),
+          0
+        ),
+        conservador: enQ
+          .filter((o) => (o.probabilidad ?? 0) >= 70)
+          .reduce((acc, o) => acc + Number(o.monto_estimado_usd), 0),
+      };
+    });
+
+    return {
+      trimestre: `Q${q} ${anio}`,
+      metaComisiones: metaComisiones != null ? Number(metaComisiones) : null,
+      metaDeals: metaDeals != null ? Number(metaDeals) : null,
+      comisionesLogradas,
+      dealsLogrados: ganadasQ.length,
+      forecast,
+    };
+  }, [oportunidades, objetivos]);
 
   const stats = useMemo(() => {
     const ps = partners ?? [];
@@ -341,6 +519,40 @@ export function Dashboard() {
         />
       </div>
 
+      {/* Objetivos del trimestre */}
+      <Panel title={`Objetivos ${planning.trimestre}`}>
+        {planning.metaComisiones == null && planning.metaDeals == null ? (
+          <p className="text-sm text-muted-warm">
+            Todavía no cargaste objetivos para este trimestre. Definilos en{" "}
+            <Link
+              href="/configuracion"
+              className="font-medium text-orange-deep hover:underline"
+            >
+              Configuración → Objetivos
+            </Link>
+            .
+          </p>
+        ) : (
+          <div className="grid gap-6 sm:grid-cols-2">
+            {planning.metaComisiones != null && (
+              <GoalBar
+                label="Comisiones ganadas"
+                actual={planning.comisionesLogradas}
+                meta={planning.metaComisiones}
+                money
+              />
+            )}
+            {planning.metaDeals != null && (
+              <GoalBar
+                label="Deals ganados"
+                actual={planning.dealsLogrados}
+                meta={planning.metaDeals}
+              />
+            )}
+          </div>
+        )}
+      </Panel>
+
       {/* Row 2 — Gráficos */}
       <div className="grid gap-4 xl:grid-cols-3">
         <Panel title="Partners activos por país">
@@ -433,6 +645,153 @@ export function Dashboard() {
         </Panel>
       </div>
 
+      {/* Row 2b — Funnel, motivos y velocidad */}
+      <div className="grid gap-4 xl:grid-cols-3">
+        <Panel
+          title={
+            metricas.winRate != null
+              ? `Funnel de conversión — Win rate ${metricas.winRate}%`
+              : "Funnel de conversión"
+          }
+        >
+          <ResponsiveContainer width="100%" height={240}>
+            <BarChart
+              data={metricas.funnelData}
+              layout="vertical"
+              margin={{ left: 8, right: 48 }}
+              barSize={22}
+            >
+              <XAxis type="number" hide />
+              <YAxis
+                type="category"
+                dataKey="etapa"
+                tick={{ fontSize: 12, fill: MUTED }}
+                axisLine={false}
+                tickLine={false}
+                width={86}
+              />
+              <Tooltip
+                content={<ChartTooltip money={false} />}
+                cursor={{ fill: "#FFF6EE" }}
+              />
+              <Bar dataKey="count" fill={MARK} radius={[0, 4, 4, 0]}>
+                <LabelList
+                  dataKey="pct"
+                  position="right"
+                  formatter={(v) => `${v}%`}
+                  style={{ fontSize: 11, fill: MUTED, fontWeight: 600 }}
+                />
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </Panel>
+
+        <Panel title="Por qué perdemos">
+          {metricas.motivos.length === 0 ? (
+            <p className="py-16 text-center text-sm text-muted-warm">
+              Sin pérdidas con motivo registrado. 👏
+            </p>
+          ) : (
+            <ResponsiveContainer width="100%" height={240}>
+              <BarChart data={metricas.motivos} barSize={28}>
+                <CartesianGrid
+                  stroke={GRID}
+                  strokeDasharray="3 3"
+                  vertical={false}
+                />
+                <XAxis
+                  dataKey="motivo"
+                  tick={{ fontSize: 11, fill: MUTED }}
+                  axisLine={{ stroke: GRID }}
+                  tickLine={false}
+                />
+                <YAxis
+                  allowDecimals={false}
+                  tick={{ fontSize: 12, fill: MUTED }}
+                  axisLine={false}
+                  tickLine={false}
+                  width={24}
+                />
+                <Tooltip
+                  content={<ChartTooltip money={false} />}
+                  cursor={{ fill: "#FFF6EE" }}
+                />
+                <Bar dataKey="count" fill={MARK} radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </Panel>
+
+        <Panel title="Tiempo promedio por etapa">
+          {metricas.tiempos.every((t) => t.dias == null) ? (
+            <p className="py-16 text-center text-sm text-muted-warm">
+              Se calcula solo: a medida que las oportunidades avancen de etapa,
+              acá vas a ver cuántos días pasan en cada una.
+            </p>
+          ) : (
+            <ul className="space-y-3 pt-1">
+              {metricas.tiempos.map((t) => (
+                <li key={t.etapa} className="flex items-center gap-3 text-sm">
+                  <span className="w-24 shrink-0 font-medium text-ink">
+                    {t.etapa}
+                  </span>
+                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-cream">
+                    {t.dias != null && (
+                      <div
+                        className="h-full rounded-full bg-[#E55A0E]"
+                        style={{
+                          width: `${Math.min(100, (t.dias / Math.max(...metricas.tiempos.map((x) => x.dias ?? 0), 1)) * 100)}%`,
+                        }}
+                      />
+                    )}
+                  </div>
+                  <span className="w-20 shrink-0 text-right tabular-nums text-muted-warm">
+                    {t.dias != null ? `${t.dias} días` : "—"}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Panel>
+      </div>
+
+      {/* Forecast por trimestre */}
+      <Panel title="Forecast de cierre por trimestre (pipeline abierto)">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {planning.forecast.map((f) => (
+            <div
+              key={f.label}
+              className="rounded-lg border border-line bg-cream/50 p-4"
+            >
+              <div className="flex items-baseline justify-between">
+                <p className="text-sm font-bold text-ink">{f.label}</p>
+                <span className="text-xs text-muted-warm">
+                  {f.deals} {f.deals === 1 ? "deal" : "deals"}
+                </span>
+              </div>
+              <p className="mt-2 text-2xl font-extrabold tabular-nums text-orange-deep">
+                {formatMoney(f.ponderado)}
+              </p>
+              <p className="text-xs text-muted-warm">ponderado</p>
+              <div className="mt-3 flex justify-between text-xs">
+                <span className="text-muted-warm">
+                  Conservador{" "}
+                  <span className="font-semibold text-ink">
+                    {formatMoney(f.conservador)}
+                  </span>
+                </span>
+                <span className="text-muted-warm">
+                  Optimista{" "}
+                  <span className="font-semibold text-ink">
+                    {formatMoney(f.optimista)}
+                  </span>
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Panel>
+
       {/* Row 3 — Listas */}
       <div className="grid gap-4 xl:grid-cols-2">
         <Panel title="Próximas actividades (7 días)">
@@ -520,6 +879,51 @@ export function Dashboard() {
           ))}
         </div>
       </Panel>
+    </div>
+  );
+}
+
+function GoalBar({
+  label,
+  actual,
+  meta,
+  money = false,
+}: {
+  label: string;
+  actual: number;
+  meta: number;
+  money?: boolean;
+}) {
+  const pct = meta > 0 ? Math.min(100, Math.round((actual / meta) * 100)) : 0;
+  const reached = actual >= meta && meta > 0;
+  return (
+    <div>
+      <div className="flex items-baseline justify-between">
+        <p className="text-sm font-semibold text-ink">{label}</p>
+        <p className="text-xs tabular-nums text-muted-warm">
+          <span className={cn("font-bold", reached && "text-emerald-600")}>
+            {money ? formatMoney(actual) : actual}
+          </span>{" "}
+          / {money ? formatMoney(meta) : meta}
+        </p>
+      </div>
+      <div className="mt-2 h-3 overflow-hidden rounded-full bg-cream">
+        <div
+          className={cn(
+            "h-full rounded-full transition-all",
+            reached ? "bg-emerald-500" : "bg-[#E55A0E]"
+          )}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <p
+        className={cn(
+          "mt-1 text-xs font-semibold",
+          reached ? "text-emerald-600" : "text-muted-warm"
+        )}
+      >
+        {pct}% del objetivo {reached && "— ¡cumplido! 🎯"}
+      </p>
     </div>
   );
 }

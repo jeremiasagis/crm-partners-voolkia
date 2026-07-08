@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
-const NAV_ITEMS = [
+export const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/partners", label: "Partners", icon: Building2 },
   { href: "/contactos", label: "Contactos", icon: Users },
@@ -102,7 +102,7 @@ export function Sidebar({ userName, userEmail }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "sticky top-0 flex h-svh shrink-0 flex-col bg-[#2A0E04] transition-[width] duration-200",
+        "sticky top-0 hidden h-svh shrink-0 flex-col bg-[#2A0E04] transition-[width] duration-200 md:flex",
         collapsed ? "w-[68px]" : "w-60"
       )}
     >

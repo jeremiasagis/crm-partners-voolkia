@@ -18,6 +18,7 @@ import {
   COMPONENTE_DESCRIPTIONS,
   COMPONENTE_LABELS,
   ETAPA_LABELS,
+  MOTIVO_PERDIDA_LABELS,
 } from "@/lib/utils/labels";
 import { COUNTRIES } from "@/lib/utils/countries";
 import { Button } from "@/components/ui/button";
@@ -74,6 +75,7 @@ export function OppForm({
           fecha_real_cierre: oportunidad.fecha_real_cierre ?? "",
           proxima_accion: oportunidad.proxima_accion ?? "",
           proxima_accion_fecha: oportunidad.proxima_accion_fecha ?? "",
+          motivo_perdida: oportunidad.motivo_perdida,
           notes: oportunidad.notes ?? "",
           owner_id: oportunidad.owner_id,
         }
@@ -88,9 +90,14 @@ export function OppForm({
   });
 
   const probabilidad = watch("probabilidad") ?? 50;
+  const etapaActual = watch("etapa");
 
   function onSubmit(raw: OportunidadFormValues) {
-    const values = oportunidadSchema.parse(raw);
+    const parsed = oportunidadSchema.parse(raw);
+    // Sin motivo no mandamos la key: mantiene compatibilidad si la
+    // migración 002 (columna motivo_perdida) todavía no corrió.
+    const { motivo_perdida, ...rest } = parsed;
+    const values = motivo_perdida ? { ...rest, motivo_perdida } : rest;
     if (isEdit) {
       updateOpp.mutate(
         { id: oportunidad.id, values },
@@ -309,6 +316,37 @@ export function OppForm({
             className="bg-white"
           />
         </Field>
+        {etapaActual === "perdida" && (
+          <Field
+            label="Motivo de pérdida"
+            required
+            error={errors.motivo_perdida?.message}
+          >
+            <Controller
+              control={control}
+              name="motivo_perdida"
+              render={({ field }) => (
+                <Select
+                  value={field.value ?? undefined}
+                  onValueChange={field.onChange}
+                >
+                  <SelectTrigger className="w-full bg-white">
+                    <SelectValue placeholder="Elegí un motivo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(MOTIVO_PERDIDA_LABELS).map(
+                      ([value, label]) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
+                      )
+                    )}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+          </Field>
+        )}
       </FormSection>
 
       <FormSection title="Seguimiento">

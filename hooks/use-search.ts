@@ -81,7 +81,7 @@ export function useGlobalSearch(query: string) {
           id: o.id,
           title: o.cliente_final_name,
           subtitle: partner?.commercial_name || partner?.legal_name || "",
-          href: `/oportunidades/${o.id}/edit`,
+          href: `/oportunidades/${o.id}`,
         });
       }
 
