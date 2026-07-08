@@ -9,7 +9,6 @@ import {
   ExternalLink,
   Globe,
   Mail,
-  Paperclip,
   Pencil,
   Phone,
   Plus,
@@ -50,6 +49,7 @@ import {
 import { EmptyState } from "@/components/shared/empty-state";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { ActividadTimeline } from "@/components/actividades/actividad-timeline";
+import { AdjuntosPanel } from "@/components/shared/adjuntos-panel";
 
 export function PartnerDetail({ id }: { id: string }) {
   const router = useRouter();
@@ -379,11 +379,7 @@ export function PartnerDetail({ id }: { id: string }) {
         </TabsContent>
 
         <TabsContent value="adjuntos" className="mt-4">
-          <EmptyState
-            icon={Paperclip}
-            title="Adjuntos"
-            description="La carga de archivos llega en la Fase 3 con Supabase Storage."
-          />
+          <AdjuntosPanel entityType="partner" entityId={partner.id} />
         </TabsContent>
       </Tabs>
 

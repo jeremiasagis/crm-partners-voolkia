@@ -102,6 +102,43 @@ export function useUpdateOportunidad() {
   });
 }
 
+/** Cambio de etapa desde el Kanban, con update optimista para drag fluido */
+export function useMoveOportunidad() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      etapa,
+    }: {
+      id: string;
+      etapa: NonNullable<Oportunidad["etapa"]>;
+    }): Promise<void> => {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from("oportunidades")
+        .update({ etapa })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onMutate: async ({ id, etapa }) => {
+      const key = ["oportunidades", { partnerId: null }];
+      await queryClient.cancelQueries({ queryKey: key });
+      const previous =
+        queryClient.getQueryData<OportunidadWithRels[]>(key);
+      queryClient.setQueryData<OportunidadWithRels[]>(key, (old) =>
+        old?.map((o) => (o.id === id ? { ...o, etapa } : o))
+      );
+      return { previous };
+    },
+    onError: (e, _vars, context) => {
+      const key = ["oportunidades", { partnerId: null }];
+      if (context?.previous) queryClient.setQueryData(key, context.previous);
+      toast.error(`No se pudo mover la oportunidad: ${e.message}`);
+    },
+    onSettled: () => invalidate(queryClient),
+  });
+}
+
 export function useDeleteOportunidad() {
   const queryClient = useQueryClient();
   return useMutation({

@@ -4,6 +4,7 @@ import { Target } from "lucide-react";
 import { useOportunidad } from "@/hooks/use-oportunidades";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
+import { AdjuntosPanel } from "@/components/shared/adjuntos-panel";
 import { OppForm } from "./opp-form";
 
 export function OppEdit({ id }: { id: string }) {
@@ -26,6 +27,12 @@ export function OppEdit({ id }: { id: string }) {
         Editar oportunidad — {oportunidad.cliente_final_name}
       </h2>
       <OppForm oportunidad={oportunidad} />
+      <div className="max-w-3xl space-y-3 pt-2">
+        <h3 className="text-sm font-bold uppercase tracking-wide text-muted-warm">
+          Adjuntos
+        </h3>
+        <AdjuntosPanel entityType="oportunidad" entityId={oportunidad.id} />
+      </div>
     </div>
   );
 }

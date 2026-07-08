@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { LayoutGrid, Table2, Target } from "lucide-react";
-import { EmptyState } from "@/components/shared/empty-state";
+import { LayoutGrid, Table2 } from "lucide-react";
+import { KanbanBoard } from "@/components/oportunidades/kanban-board";
 
 export const metadata: Metadata = {
   title: "Kanban",
@@ -21,11 +21,7 @@ export default function KanbanPage() {
           <LayoutGrid className="size-4" /> Kanban
         </span>
       </div>
-      <EmptyState
-        icon={Target}
-        title="Kanban en construcción"
-        description="El tablero drag & drop llega en la Fase 3."
-      />
+      <KanbanBoard />
     </div>
   );
 }
