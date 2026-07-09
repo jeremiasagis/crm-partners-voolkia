@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import {
+  BarChart3,
   Building2,
   CalendarClock,
   ChevronsLeft,
@@ -34,6 +35,7 @@ export const NAV_ITEMS = [
   { href: "/oportunidades", label: "Oportunidades", icon: Target },
   { href: "/leads", label: "Leads referidos", icon: Inbox },
   { href: "/actividades", label: "Actividades", icon: CalendarClock },
+  { href: "/reportes", label: "Reportes", icon: BarChart3 },
 ];
 
 type SidebarProps = {

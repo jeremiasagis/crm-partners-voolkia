@@ -384,6 +384,51 @@ export type Database = {
         };
         Relationships: [];
       };
+      snapshots_mensuales: {
+        Row: {
+          id: string;
+          periodo: string;
+          partners_activos: number;
+          partners_total: number;
+          pipeline_ponderado: number;
+          pipeline_bruto: number;
+          opps_abiertas: number;
+          facturacion_ganada_mes: number;
+          comisiones_ganadas_mes: number;
+          deals_ganados_mes: number;
+          deals_perdidos_mes: number;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          periodo: string;
+          partners_activos?: number;
+          partners_total?: number;
+          pipeline_ponderado?: number;
+          pipeline_bruto?: number;
+          opps_abiertas?: number;
+          facturacion_ganada_mes?: number;
+          comisiones_ganadas_mes?: number;
+          deals_ganados_mes?: number;
+          deals_perdidos_mes?: number;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          periodo?: string;
+          partners_activos?: number;
+          partners_total?: number;
+          pipeline_ponderado?: number;
+          pipeline_bruto?: number;
+          opps_abiertas?: number;
+          facturacion_ganada_mes?: number;
+          comisiones_ganadas_mes?: number;
+          deals_ganados_mes?: number;
+          deals_perdidos_mes?: number;
+          created_at?: string | null;
+        };
+        Relationships: [];
+      };
       actividades: {
         Row: {
           id: string;

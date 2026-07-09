@@ -9,6 +9,8 @@ export type Adjunto = Database["public"]["Tables"]["adjuntos"]["Row"];
 export type EtapaHistorial =
   Database["public"]["Tables"]["oportunidad_etapa_historial"]["Row"];
 export type Objetivo = Database["public"]["Tables"]["objetivos"]["Row"];
+export type SnapshotMensual =
+  Database["public"]["Tables"]["snapshots_mensuales"]["Row"];
 export type LeadSubmission =
   Database["public"]["Tables"]["lead_submissions"]["Row"];
 export type LeadSubmissionInsert =
