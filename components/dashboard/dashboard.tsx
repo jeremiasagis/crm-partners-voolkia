@@ -285,13 +285,35 @@ export function Dashboard() {
       const qDate = addQuarters(now, offset);
       const inicio = startOfQuarter(qDate);
       const fin = endOfQuarter(qDate);
+      const anioQ = getYear(qDate);
+      const triQ = getQuarter(qDate);
       const enQ = abiertas.filter((o) => {
         if (!o.fecha_estimada_cierre) return false;
         const d = parseISO(o.fecha_estimada_cierre);
         return d >= inicio && d <= fin;
       });
+
+      // Objetivos del trimestre (si están cargados)
+      const metaCom = objetivos.find(
+        (ob) =>
+          ob.anio === anioQ && ob.trimestre === triQ && ob.tipo === "comisiones_usd"
+      )?.valor;
+      const metaDealsQ = objetivos.find(
+        (ob) =>
+          ob.anio === anioQ && ob.trimestre === triQ && ob.tipo === "deals_ganados"
+      )?.valor;
+
+      // Lo ya logrado en ese trimestre (ganadas con cierre real adentro)
+      const ganadasEnQ = opps.filter((o) => {
+        if (o.etapa !== "ganada") return false;
+        const f = o.fecha_real_cierre ?? o.updated_at;
+        if (!f) return false;
+        const d = parseISO(f);
+        return d >= inicio && d <= fin;
+      });
+
       return {
-        label: `Q${getQuarter(qDate)} ${getYear(qDate)}`,
+        label: `Q${triQ} ${anioQ}`,
         deals: enQ.length,
         ponderado: enQ.reduce(
           (acc, o) =>
@@ -305,6 +327,20 @@ export function Dashboard() {
         conservador: enQ
           .filter((o) => (o.probabilidad ?? 0) >= 70)
           .reduce((acc, o) => acc + Number(o.monto_estimado_usd), 0),
+        metaComisiones: metaCom != null ? Number(metaCom) : null,
+        metaDeals: metaDealsQ != null ? Number(metaDealsQ) : null,
+        logradoComisiones: ganadasEnQ.reduce(
+          (acc, o) => acc + Number(o.comision_estimada_usd ?? 0),
+          0
+        ),
+        logradoDeals: ganadasEnQ.length,
+        proyectadoComisiones: enQ.reduce(
+          (acc, o) =>
+            acc +
+            Number(o.comision_estimada_usd ?? 0) *
+              ((o.probabilidad ?? 0) / 100),
+          0
+        ),
       };
     });
 
@@ -787,6 +823,9 @@ export function Dashboard() {
                   </span>
                 </span>
               </div>
+              {(f.metaComisiones != null || f.metaDeals != null) && (
+                <ForecastMeta forecast={f} />
+              )}
             </div>
           ))}
         </div>
@@ -879,6 +918,91 @@ export function Dashboard() {
           ))}
         </div>
       </Panel>
+    </div>
+  );
+}
+
+function ForecastMeta({
+  forecast: f,
+}: {
+  forecast: {
+    metaComisiones: number | null;
+    metaDeals: number | null;
+    logradoComisiones: number;
+    logradoDeals: number;
+    proyectadoComisiones: number;
+    deals: number;
+  };
+}) {
+  const meta = f.metaComisiones;
+  const esperado = f.logradoComisiones + f.proyectadoComisiones;
+  const pct = meta && meta > 0 ? Math.round((esperado / meta) * 100) : null;
+  const pctLogrado =
+    meta && meta > 0 ? Math.min(100, (f.logradoComisiones / meta) * 100) : 0;
+  const pctProyectado =
+    meta && meta > 0
+      ? Math.min(100 - pctLogrado, (f.proyectadoComisiones / meta) * 100)
+      : 0;
+
+  return (
+    <div className="mt-3 space-y-2 border-t border-line pt-3">
+      {meta != null && (
+        <div>
+          <div className="flex items-baseline justify-between text-xs">
+            <span className="font-semibold text-ink">
+              Objetivo comisiones
+            </span>
+            <span className="tabular-nums text-muted-warm">
+              {formatMoney(meta)}
+            </span>
+          </div>
+          <div className="mt-1.5 flex h-2 overflow-hidden rounded-full bg-white">
+            <div
+              className="h-full bg-emerald-500"
+              style={{ width: `${pctLogrado}%` }}
+              title="Logrado"
+            />
+            <div
+              className="h-full bg-[#E55A0E]/50"
+              style={{ width: `${pctProyectado}%` }}
+              title="Proyectado del pipeline"
+            />
+          </div>
+          <p className="mt-1 text-[11px] text-muted-warm">
+            Logrado{" "}
+            <span className="font-semibold text-emerald-700">
+              {formatMoney(f.logradoComisiones)}
+            </span>
+            {" · "}proyectado{" "}
+            <span className="font-semibold text-orange-deep">
+              {formatMoney(f.proyectadoComisiones)}
+            </span>
+            {pct != null && (
+              <span
+                className={cn(
+                  "float-right font-bold",
+                  pct >= 100
+                    ? "text-emerald-600"
+                    : pct >= 70
+                      ? "text-amber-600"
+                      : "text-red-600"
+                )}
+              >
+                {pct}%
+              </span>
+            )}
+          </p>
+        </div>
+      )}
+      {f.metaDeals != null && (
+        <p className="text-[11px] text-muted-warm">
+          Deals:{" "}
+          <span className="font-bold text-ink">
+            {f.logradoDeals}/{f.metaDeals}
+          </span>{" "}
+          ganados · {f.deals} en pipeline
+        </p>
+      )}
     </div>
   );
 }
