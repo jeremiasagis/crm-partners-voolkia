@@ -2,8 +2,13 @@
 
 import { useState } from "react";
 import { getQuarter, getYear } from "date-fns";
-import { Loader2, Target } from "lucide-react";
-import { useObjetivos, useUpsertObjetivo } from "@/hooks/use-objetivos";
+import { Loader2, Pencil, Target, Trash2 } from "lucide-react";
+import {
+  useDeleteObjetivosPeriodo,
+  useObjetivos,
+  useUpsertObjetivo,
+} from "@/hooks/use-objetivos";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { formatMoney } from "@/lib/utils/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,8 +38,25 @@ export function ObjetivosTab() {
 
   const { data: objetivos = [] } = useObjetivos();
   const upsert = useUpsertObjetivo();
+  const deletePeriodo = useDeleteObjetivosPeriodo();
+  const [toDelete, setToDelete] = useState<{
+    anio: number;
+    trimestre: number;
+  } | null>(null);
 
   const anios = [getYear(now) - 1, getYear(now), getYear(now) + 1];
+
+  function startEdit(p: {
+    anio: number;
+    trimestre: number;
+    facturacion?: number;
+    deals?: number;
+  }) {
+    setAnio(p.anio);
+    setTrimestre(p.trimestre);
+    setFacturacion(p.facturacion != null ? String(p.facturacion) : "");
+    setDeals(p.deals != null ? String(p.deals) : "");
+  }
 
   async function handleSave() {
     if (facturacion !== "") {
@@ -81,7 +103,9 @@ export function ObjetivosTab() {
           Definir objetivo trimestral
         </h3>
         <p className="mb-4 text-xs text-muted-warm">
-          El avance contra estos objetivos se muestra en el Dashboard.
+          El avance contra estos objetivos se muestra en el Dashboard (el
+          forecast cubre el trimestre actual y los próximos 3). Guardar sobre
+          un período existente actualiza sus valores.
         </p>
         <div className="grid grid-cols-2 gap-4">
           <Field label="Año">
@@ -160,6 +184,7 @@ export function ObjetivosTab() {
                 <TableHead>Período</TableHead>
                 <TableHead className="text-right">Facturación</TableHead>
                 <TableHead className="text-right">Deals</TableHead>
+                <TableHead className="w-20" />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -174,12 +199,47 @@ export function ObjetivosTab() {
                   <TableCell className="text-right tabular-nums">
                     {p.deals ?? "—"}
                   </TableCell>
+                  <TableCell>
+                    <div className="flex justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-7"
+                        title="Editar (carga los valores en el form)"
+                        onClick={() => startEdit(p)}
+                      >
+                        <Pencil className="size-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-7 text-destructive"
+                        title="Eliminar"
+                        onClick={() =>
+                          setToDelete({ anio: p.anio, trimestre: p.trimestre })
+                        }
+                      >
+                        <Trash2 className="size-3.5" />
+                      </Button>
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         )}
       </div>
+
+      <ConfirmDialog
+        open={!!toDelete}
+        onOpenChange={(o) => !o && setToDelete(null)}
+        title={`¿Eliminar los objetivos de Q${toDelete?.trimestre} ${toDelete?.anio}?`}
+        description="Se eliminan la meta de facturación y la de deals de ese período."
+        onConfirm={() => {
+          if (toDelete) deletePeriodo.mutate(toDelete);
+          setToDelete(null);
+        }}
+      />
     </div>
   );
 }

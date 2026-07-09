@@ -26,6 +26,33 @@ export function useObjetivos(anio?: number) {
   });
 }
 
+/** Elimina todos los objetivos de un período (facturación + deals) */
+export function useDeleteObjetivosPeriodo() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      anio,
+      trimestre,
+    }: {
+      anio: number;
+      trimestre: number;
+    }) => {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from("objetivos")
+        .delete()
+        .eq("anio", anio)
+        .eq("trimestre", trimestre);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["objetivos"] });
+      toast.success("Objetivo eliminado");
+    },
+    onError: (e) => toast.error(`No se pudo eliminar: ${e.message}`),
+  });
+}
+
 export function useUpsertObjetivo() {
   const queryClient = useQueryClient();
   return useMutation({
