@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -21,6 +22,7 @@ import {
   MOTIVO_PERDIDA_LABELS,
 } from "@/lib/utils/labels";
 import { COUNTRIES } from "@/lib/utils/countries";
+import { COMISION_CONFIG, calcComision } from "@/lib/utils/comisiones";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -58,6 +60,7 @@ export function OppForm({
     handleSubmit,
     control,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<OportunidadFormValues>({
     resolver: zodResolver(oportunidadSchema),
@@ -91,6 +94,29 @@ export function OppForm({
 
   const probabilidad = watch("probabilidad") ?? 50;
   const etapaActual = watch("etapa");
+  const componenteActual = watch("componente");
+  const montoActual = watch("monto_estimado_usd");
+
+  // Comisión automática: recalcula al cambiar componente o monto,
+  // pero respeta el valor si el usuario lo ajusta a mano después.
+  const prevCalc = useRef<{ comp?: string; monto?: unknown }>({
+    comp: oportunidad?.componente,
+    monto: oportunidad ? Number(oportunidad.monto_estimado_usd) : undefined,
+  });
+  useEffect(() => {
+    const changed =
+      prevCalc.current.comp !== componenteActual ||
+      prevCalc.current.monto !== montoActual;
+    if (!changed) return;
+    prevCalc.current = { comp: componenteActual, monto: montoActual };
+    if (!componenteActual) return;
+    const monto = Number(montoActual);
+    setValue("comision_estimada_usd", calcComision(componenteActual, monto));
+  }, [componenteActual, montoActual, setValue]);
+
+  const comisionInfo = componenteActual
+    ? COMISION_CONFIG[componenteActual]
+    : null;
 
   function onSubmit(raw: OportunidadFormValues) {
     const parsed = oportunidadSchema.parse(raw);
@@ -235,7 +261,7 @@ export function OppForm({
 
       <FormSection title="Negocio">
         <Field
-          label="Monto estimado (USD)"
+          label={comisionInfo?.montoLabel ?? "Monto estimado (USD)"}
           required
           error={errors.monto_estimado_usd?.message}
         >
@@ -258,6 +284,12 @@ export function OppForm({
             {...register("comision_estimada_usd")}
             className="bg-white"
           />
+          {comisionInfo && (
+            <p className="text-xs text-muted-warm">
+              Se calcula sola: {comisionInfo.formula} · {comisionInfo.pago}.
+              Podés ajustarla a mano.
+            </p>
+          )}
         </Field>
         <Field
           label={`Probabilidad: ${probabilidad}%`}

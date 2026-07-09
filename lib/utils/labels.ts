@@ -107,10 +107,10 @@ export const COMPONENTE_LABELS: Record<Componente, string> = {
 };
 
 export const COMPONENTE_DESCRIPTIONS: Record<Componente, string> = {
-  "R-A": "Referral con comisión sobre facturación",
-  "R-B": "Referral con fee fijo por colocación",
-  T: "Takeover de equipo o servicio existente",
-  P: "Proyecto llave en mano",
+  "R-A": "Staffing con búsqueda · comisión 120% del sueldo mensual, en 12 cuotas",
+  "R-B": "Staffing con búsqueda · 3% de la facturación anual, pago único",
+  T: "Equipo/servicio existente · 3% de la facturación anual, pago único",
+  P: "Proyecto llave en mano · 5% del valor total, pago por hito",
 };
 
 export const COMPONENTE_COLORS: Record<Componente, string> = {

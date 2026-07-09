@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   Check,
@@ -27,6 +27,7 @@ import {
   partnerDisplayName,
 } from "@/lib/utils/labels";
 import { countryFlag, countryName } from "@/lib/utils/countries";
+import { COMISION_CONFIG, calcComision } from "@/lib/utils/comisiones";
 import { formatDateTime, formatMoney } from "@/lib/utils/format";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -244,6 +245,13 @@ function ApproveDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [leadId]);
 
+  // Comisión automática según componente y monto (ajustable a mano)
+  useEffect(() => {
+    setComision(String(calcComision(componente, Number(monto) || 0)));
+  }, [componente, monto]);
+
+  const comisionInfo = COMISION_CONFIG[componente];
+
   return (
     <Dialog open={!!lead} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="sm:max-w-md">
@@ -273,7 +281,7 @@ function ApproveDialog({
             </Select>
           </Field>
           <div className="grid grid-cols-2 gap-4">
-            <Field label="Monto estimado (USD)" required>
+            <Field label={comisionInfo.montoLabel} required>
               <Input
                 type="number"
                 min="0"
@@ -290,6 +298,10 @@ function ApproveDialog({
               />
             </Field>
           </div>
+          <p className="text-xs text-muted-warm">
+            Comisión calculada: {comisionInfo.formula} · {comisionInfo.pago}.
+            Podés ajustarla a mano.
+          </p>
           <Field label={`Probabilidad: ${probabilidad}%`}>
             <Slider
               value={[probabilidad]}
