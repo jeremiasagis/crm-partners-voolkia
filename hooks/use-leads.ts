@@ -32,9 +32,21 @@ export function useLeadSubmissions() {
   });
 }
 
+/** Contador liviano para el badge del sidebar (HEAD + count, sin traer filas) */
 export function usePendingLeadsCount() {
-  const { data } = useLeadSubmissions();
-  return (data ?? []).filter((l) => l.estado === "pendiente").length;
+  const { data } = useQuery({
+    queryKey: ["lead-submissions", "pending-count"],
+    queryFn: async (): Promise<number> => {
+      const supabase = createClient();
+      const { count, error } = await supabase
+        .from("lead_submissions")
+        .select("id", { count: "exact", head: true })
+        .eq("estado", "pendiente");
+      if (error) return 0;
+      return count ?? 0;
+    },
+  });
+  return data ?? 0;
 }
 
 export function useApproveLead() {

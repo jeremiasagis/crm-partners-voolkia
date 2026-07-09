@@ -11,7 +11,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 30_000,
+            // Con realtime invalidando al cambiar datos, podemos cachear
+            // más agresivo: navegar entre secciones no refetchea todo.
+            staleTime: 5 * 60_000,
+            gcTime: 10 * 60_000,
             refetchOnWindowFocus: false,
           },
         },

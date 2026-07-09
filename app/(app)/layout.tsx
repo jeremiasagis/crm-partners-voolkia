@@ -10,9 +10,12 @@ export default async function AppLayout({
   children: React.ReactNode;
 }) {
   const supabase = await createClient();
+  // El middleware ya validó la sesión con getUser() en este mismo request;
+  // acá leemos la cookie sin otro round-trip a Supabase Auth.
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
+  const user = session?.user;
 
   if (!user) {
     redirect("/login");

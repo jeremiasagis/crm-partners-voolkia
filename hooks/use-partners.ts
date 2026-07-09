@@ -5,8 +5,9 @@ import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import type { Partner, PartnerInsert, PartnerWithStats } from "@/lib/types";
 
+// FK explícita: profiles tiene dos relaciones con partners (owner_id y partner_id)
 const LIST_SELECT =
-  "*, oportunidades(id, etapa, monto_estimado_usd, probabilidad), owner:profiles(id, full_name)";
+  "*, oportunidades(id, etapa, monto_estimado_usd, probabilidad), owner:profiles!partners_owner_id_fkey(id, full_name)";
 
 export function usePartners() {
   return useQuery({

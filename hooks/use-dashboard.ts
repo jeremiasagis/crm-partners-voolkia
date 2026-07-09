@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import type { ActividadWithRels } from "@/lib/types";
 
 const ACT_SELECT =
-  "*, partner:partners(id, legal_name, commercial_name), contacto:contactos(id, first_name, last_name), oportunidad:oportunidades(id, cliente_final_name), owner:profiles(id, full_name)";
+  "*, partner:partners(id, legal_name, commercial_name), contacto:contactos(id, first_name, last_name), oportunidad:oportunidades(id, cliente_final_name), owner:profiles!actividades_owner_id_fkey(id, full_name)";
 
 /** Actividades con próxima acción hoy (todos los usuarios) — KPI */
 export function usePendientesHoy() {

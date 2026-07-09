@@ -10,7 +10,7 @@ import type {
 } from "@/lib/types";
 
 const LIST_SELECT =
-  "*, partner:partners(id, legal_name, commercial_name, country_code), owner:profiles(id, full_name)";
+  "*, partner:partners(id, legal_name, commercial_name, country_code), owner:profiles!oportunidades_owner_id_fkey(id, full_name)";
 
 export function useOportunidades(partnerId?: string) {
   return useQuery({
