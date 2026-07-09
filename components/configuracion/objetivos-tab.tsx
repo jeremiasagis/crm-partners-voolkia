@@ -28,7 +28,7 @@ export function ObjetivosTab() {
   const now = new Date();
   const [anio, setAnio] = useState(getYear(now));
   const [trimestre, setTrimestre] = useState(getQuarter(now));
-  const [comisiones, setComisiones] = useState("");
+  const [facturacion, setFacturacion] = useState("");
   const [deals, setDeals] = useState("");
 
   const { data: objetivos = [] } = useObjetivos();
@@ -37,12 +37,12 @@ export function ObjetivosTab() {
   const anios = [getYear(now) - 1, getYear(now), getYear(now) + 1];
 
   async function handleSave() {
-    if (comisiones !== "") {
+    if (facturacion !== "") {
       await upsert.mutateAsync({
         anio,
         trimestre,
-        tipo: "comisiones_usd",
-        valor: Number(comisiones),
+        tipo: "facturacion_usd",
+        valor: Number(facturacion),
       });
     }
     if (deals !== "") {
@@ -53,19 +53,19 @@ export function ObjetivosTab() {
         valor: Number(deals),
       });
     }
-    setComisiones("");
+    setFacturacion("");
     setDeals("");
   }
 
   const porPeriodo = new Map<
     string,
-    { anio: number; trimestre: number; comisiones?: number; deals?: number }
+    { anio: number; trimestre: number; facturacion?: number; deals?: number }
   >();
   for (const o of objetivos) {
     const key = `${o.anio}-Q${o.trimestre}`;
     const entry =
       porPeriodo.get(key) ?? { anio: o.anio, trimestre: o.trimestre };
-    if (o.tipo === "comisiones_usd") entry.comisiones = Number(o.valor);
+    if (o.tipo === "facturacion_usd") entry.facturacion = Number(o.valor);
     if (o.tipo === "deals_ganados") entry.deals = Number(o.valor);
     porPeriodo.set(key, entry);
   }
@@ -118,13 +118,13 @@ export function ObjetivosTab() {
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Meta de comisiones (USD)">
+          <Field label="Meta de facturación (USD)">
             <Input
               type="number"
               min="0"
-              placeholder="ej: 50000"
-              value={comisiones}
-              onChange={(e) => setComisiones(e.target.value)}
+              placeholder="ej: 400000"
+              value={facturacion}
+              onChange={(e) => setFacturacion(e.target.value)}
             />
           </Field>
           <Field label="Meta de deals ganados">
@@ -140,7 +140,7 @@ export function ObjetivosTab() {
         <Button
           className="mt-4"
           onClick={handleSave}
-          disabled={upsert.isPending || (comisiones === "" && deals === "")}
+          disabled={upsert.isPending || (facturacion === "" && deals === "")}
         >
           {upsert.isPending && <Loader2 className="size-4 animate-spin" />}
           Guardar objetivo
@@ -158,7 +158,7 @@ export function ObjetivosTab() {
             <TableHeader>
               <TableRow className="hover:bg-transparent">
                 <TableHead>Período</TableHead>
-                <TableHead className="text-right">Comisiones</TableHead>
+                <TableHead className="text-right">Facturación</TableHead>
                 <TableHead className="text-right">Deals</TableHead>
               </TableRow>
             </TableHeader>
@@ -169,7 +169,7 @@ export function ObjetivosTab() {
                     Q{p.trimestre} {p.anio}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
-                    {p.comisiones != null ? formatMoney(p.comisiones) : "—"}
+                    {p.facturacion != null ? formatMoney(p.facturacion) : "—"}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
                     {p.deals ?? "—"}

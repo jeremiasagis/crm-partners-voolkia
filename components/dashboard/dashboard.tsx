@@ -257,8 +257,9 @@ export function Dashboard() {
     const anio = getYear(now);
     const q = getQuarter(now);
 
-    const metaComisiones = objetivos.find(
-      (o) => o.anio === anio && o.trimestre === q && o.tipo === "comisiones_usd"
+    const metaFacturacion = objetivos.find(
+      (o) =>
+        o.anio === anio && o.trimestre === q && o.tipo === "facturacion_usd"
     )?.valor;
     const metaDeals = objetivos.find(
       (o) => o.anio === anio && o.trimestre === q && o.tipo === "deals_ganados"
@@ -273,8 +274,8 @@ export function Dashboard() {
       const d = parseISO(f);
       return d >= inicioQ && d <= finQ;
     });
-    const comisionesLogradas = ganadasQ.reduce(
-      (acc, o) => acc + Number(o.comision_estimada_usd ?? 0),
+    const facturacionLograda = ganadasQ.reduce(
+      (acc, o) => acc + Number(o.monto_estimado_usd),
       0
     );
 
@@ -294,9 +295,11 @@ export function Dashboard() {
       });
 
       // Objetivos del trimestre (si están cargados)
-      const metaCom = objetivos.find(
+      const metaFact = objetivos.find(
         (ob) =>
-          ob.anio === anioQ && ob.trimestre === triQ && ob.tipo === "comisiones_usd"
+          ob.anio === anioQ &&
+          ob.trimestre === triQ &&
+          ob.tipo === "facturacion_usd"
       )?.valor;
       const metaDealsQ = objetivos.find(
         (ob) =>
@@ -327,28 +330,22 @@ export function Dashboard() {
         conservador: enQ
           .filter((o) => (o.probabilidad ?? 0) >= 70)
           .reduce((acc, o) => acc + Number(o.monto_estimado_usd), 0),
-        metaComisiones: metaCom != null ? Number(metaCom) : null,
+        metaFacturacion: metaFact != null ? Number(metaFact) : null,
         metaDeals: metaDealsQ != null ? Number(metaDealsQ) : null,
-        logradoComisiones: ganadasEnQ.reduce(
-          (acc, o) => acc + Number(o.comision_estimada_usd ?? 0),
+        logradoFacturacion: ganadasEnQ.reduce(
+          (acc, o) => acc + Number(o.monto_estimado_usd),
           0
         ),
         logradoDeals: ganadasEnQ.length,
-        proyectadoComisiones: enQ.reduce(
-          (acc, o) =>
-            acc +
-            Number(o.comision_estimada_usd ?? 0) *
-              ((o.probabilidad ?? 0) / 100),
-          0
-        ),
       };
     });
 
     return {
       trimestre: `Q${q} ${anio}`,
-      metaComisiones: metaComisiones != null ? Number(metaComisiones) : null,
+      metaFacturacion:
+        metaFacturacion != null ? Number(metaFacturacion) : null,
       metaDeals: metaDeals != null ? Number(metaDeals) : null,
-      comisionesLogradas,
+      facturacionLograda,
       dealsLogrados: ganadasQ.length,
       forecast,
     };
@@ -557,7 +554,7 @@ export function Dashboard() {
 
       {/* Objetivos del trimestre */}
       <Panel title={`Objetivos ${planning.trimestre}`}>
-        {planning.metaComisiones == null && planning.metaDeals == null ? (
+        {planning.metaFacturacion == null && planning.metaDeals == null ? (
           <p className="text-sm text-muted-warm">
             Todavía no cargaste objetivos para este trimestre. Definilos en{" "}
             <Link
@@ -570,11 +567,11 @@ export function Dashboard() {
           </p>
         ) : (
           <div className="grid gap-6 sm:grid-cols-2">
-            {planning.metaComisiones != null && (
+            {planning.metaFacturacion != null && (
               <GoalBar
-                label="Comisiones ganadas"
-                actual={planning.comisionesLogradas}
-                meta={planning.metaComisiones}
+                label="Facturación ganada"
+                actual={planning.facturacionLograda}
+                meta={planning.metaFacturacion}
                 money
               />
             )}
@@ -823,7 +820,7 @@ export function Dashboard() {
                   </span>
                 </span>
               </div>
-              {(f.metaComisiones != null || f.metaDeals != null) && (
+              {(f.metaFacturacion != null || f.metaDeals != null) && (
                 <ForecastMeta forecast={f} />
               )}
             </div>
@@ -926,22 +923,23 @@ function ForecastMeta({
   forecast: f,
 }: {
   forecast: {
-    metaComisiones: number | null;
+    metaFacturacion: number | null;
     metaDeals: number | null;
-    logradoComisiones: number;
+    logradoFacturacion: number;
     logradoDeals: number;
-    proyectadoComisiones: number;
+    ponderado: number;
     deals: number;
   };
 }) {
-  const meta = f.metaComisiones;
-  const esperado = f.logradoComisiones + f.proyectadoComisiones;
+  const meta = f.metaFacturacion;
+  // Esperado = facturación ya ganada en el Q + pipeline ponderado del Q
+  const esperado = f.logradoFacturacion + f.ponderado;
   const pct = meta && meta > 0 ? Math.round((esperado / meta) * 100) : null;
   const pctLogrado =
-    meta && meta > 0 ? Math.min(100, (f.logradoComisiones / meta) * 100) : 0;
+    meta && meta > 0 ? Math.min(100, (f.logradoFacturacion / meta) * 100) : 0;
   const pctProyectado =
     meta && meta > 0
-      ? Math.min(100 - pctLogrado, (f.proyectadoComisiones / meta) * 100)
+      ? Math.min(100 - pctLogrado, (f.ponderado / meta) * 100)
       : 0;
 
   return (
@@ -950,7 +948,7 @@ function ForecastMeta({
         <div>
           <div className="flex items-baseline justify-between text-xs">
             <span className="font-semibold text-ink">
-              Objetivo comisiones
+              Objetivo facturación
             </span>
             <span className="tabular-nums text-muted-warm">
               {formatMoney(meta)}
@@ -960,22 +958,22 @@ function ForecastMeta({
             <div
               className="h-full bg-emerald-500"
               style={{ width: `${pctLogrado}%` }}
-              title="Logrado"
+              title="Facturación ganada"
             />
             <div
               className="h-full bg-[#E55A0E]/50"
               style={{ width: `${pctProyectado}%` }}
-              title="Proyectado del pipeline"
+              title="Pipeline ponderado del trimestre"
             />
           </div>
           <p className="mt-1 text-[11px] text-muted-warm">
-            Logrado{" "}
+            Ganado{" "}
             <span className="font-semibold text-emerald-700">
-              {formatMoney(f.logradoComisiones)}
+              {formatMoney(f.logradoFacturacion)}
             </span>
             {" · "}proyectado{" "}
             <span className="font-semibold text-orange-deep">
-              {formatMoney(f.proyectadoComisiones)}
+              {formatMoney(f.ponderado)}
             </span>
             {pct != null && (
               <span

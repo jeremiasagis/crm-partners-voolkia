@@ -56,7 +56,7 @@ export type MotivoPerdida =
   | "competidor"
   | "sin_presupuesto"
   | "otro";
-export type TipoObjetivo = "comisiones_usd" | "deals_ganados";
+export type TipoObjetivo = "facturacion_usd" | "deals_ganados";
 export type TipoActividad =
   | "llamada"
   | "reunion"
